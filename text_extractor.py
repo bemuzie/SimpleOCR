@@ -5,6 +5,7 @@ from skimage import filters
 from skimage import morphology
 from skimage import transform
 from skimage import measure
+from skimage import feature
 from matplotlib import pyplot as plt
 import csv
 
@@ -58,8 +59,16 @@ class Screenshot():
         for region_name, region_dict in self.rois.items():
             for roi_name, roi_dict in region_dict.items():
                 for i, im in enumerate(self.rois[region_name][roi_name]['image'].characters):
-                    plt.imshow(im,interpolation='none')
-                    plt.savefig('%s/%s_%s_%s_%s.png'%(out_folder,self.base_name,region_name,roi_name,i) )
+                    #plt.imshow(im,interpolation='none')
+                    image2save = np.zeros(im.shape)
+                    image2save[im!=0]=1
+                    image2save = image2save[...,None]
+                    image2save = np.dstack((image2save,image2save,image2save))
+                    io.imsave('%s/%s_%s_%s_%s.png'%(out_folder,self.base_name,region_name,roi_name,i),
+                              image2save)
+
+    def get_images(self):
+        return self.rois
 
 
 
@@ -69,9 +78,11 @@ class Image():
         self.image = image
         self.text_colors = []
         self.characters = []
+
     def show_image(self):
         plt.imshow(self.image)
         plt.show()
+
     def preprocess(self,image=None):
         if image is None:
             image = self.image
@@ -85,8 +96,10 @@ class Image():
 
     def add_text_color(self,r,g,b):
         self.text_colors += ((r,g,b),)
+
     def add_text_colors(self, rgb):
         self.text_colors += rgb
+
     def segment(self,margin=0):
         self.bw = self.image
         self.image = measure.label(self.bw, connectivity=1)
@@ -98,10 +111,10 @@ class Image():
 
 
                 self.characters.append(character_image)
+
     def resize_characters(self,x=10,y=10):
         for i in self.characters:
             resized = transform.resize(np.array(i,dtype=float), (x,y))
-
 
     def show_characters(self):
         plot_size = len(self.characters)
@@ -110,6 +123,11 @@ class Image():
 
             plt.imshow(self.characters[i])
         plt.show()
+
+    def hog(self):
+        fd, hog_image = feature.hog(self.image, orientations=8, pixels_per_cell=(16, 16),
+                            cells_per_block=(1, 1), visualise=True)
+
 
 
 
